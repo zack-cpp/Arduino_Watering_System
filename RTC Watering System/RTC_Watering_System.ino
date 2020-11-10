@@ -25,9 +25,10 @@ bool stateDurasi = false;
 bool watering = false;
 bool wateringDone = false;
 bool buttonPressed = false;
+bool next = false;
 
 String input = "";
-String jam[2],menit[2];
+String jam,menit;
 
 int iJam,iMenit,counter = 0, wateringCounter = 0;
 
@@ -35,6 +36,7 @@ unsigned int durasiInSecond = 0;
 unsigned int currentWatering = 0;
 unsigned int tmpSecond = 0;
 unsigned int tick = 0;
+unsigned int nextID = 0;
 
 char KeysID[] = {'1',  '2', '3', 'A', '4', '5', '6', 'B', '7', '8', '9', 'C', '*', '0', '#', 'D'};
 char keys[ROWS][COLS] = {
@@ -86,10 +88,32 @@ void loop() {
   EEPROM.write(1, now.minute());
   EEPROM.write(2, now.second());
   lcd.setCursor(0,0);
+  // show jadwal
+  lcd.print("Jadwal: ");
+  if(EEPROM.read((nextID*5) + 2) < 10){
+    lcd.print("0");
+  }
+  lcd.print(EEPROM.read((nextID*5) + 2));
+  lcd.print(":");
+  if(EEPROM.read((nextID*5) + 3) < 10){
+    lcd.print("0");
+  }
+  lcd.print(EEPROM.read((nextID*5) + 3));
+  //
+  lcd.setCursor(0,1);
+  if(EEPROM.read(0) < 10){
+    lcd.print("0");
+  }
   lcd.print(EEPROM.read(0));
   lcd.print(":");
+  if(EEPROM.read(1) < 10){
+    lcd.print("0");
+  }
   lcd.print(EEPROM.read(1));
   lcd.print(":");
+  if(EEPROM.read(2) < 10){
+    lcd.print("0");
+  }
   lcd.print(EEPROM.read(2));
   char key = keypad.getKey();
   if(key){
@@ -183,14 +207,14 @@ void getClock(int schedule){
   decodeClock(schedule);
 }
 void decodeClock(int schedule){
-  jam[1] = "";
-  menit[1] = "";
-  jam[1] += input[0];
-  jam[1] += input[1];
-  iJam = jam[1].toInt();
-  menit[1] += input[3];
-  menit[1] += input[4];
-  iMenit = menit[1].toInt();
+  jam = "";
+  menit = "";
+  jam += input[0];
+  jam += input[1];
+  iJam = jam.toInt();
+  menit += input[3];
+  menit += input[4];
+  iMenit = menit.toInt();
   Serial.print(iJam);
   Serial.print(":");
   Serial.println(iMenit);
@@ -219,14 +243,35 @@ void checkTime(){ //gurung bener
     for(int schedule = 0; schedule < checkSchedule; schedule++){
       int checkHour = EEPROM.read(((schedule + 1) * 5) + 2);
       int checkMinute = EEPROM.read(((schedule + 1) *5) + 3);
+      if(now.hour() < checkHour){
+        if(now.minute() < checkMinute){
+          
+        }else{
+          if(next == false){
+            next = true;
+            nextID++;
+          }
+        }
+      }else if(now.hour() == checkHour){
+        if(now.minute() < checkMinute){
+          if(next == false){
+            next = true;
+            nextID++;
+          }
+        }
+      }
       int checkDurasiMinute = EEPROM.read((schedule + 1) * 5);
       int checkDurasiSecond = EEPROM.read(((schedule + 1) * 5) + 1);
       durasiInSecond = (checkDurasiMinute * 60) + checkDurasiSecond;
       if(now.hour() == checkHour && now.minute() == checkMinute && wateringDone == false || buttonPressed == true){
         if(state[schedule] == false){
           state[schedule] = true;
+          next = false;
           startWatering(durasiInSecond);
           wateringDone = true;
+          if(nextID == checkSchedule){
+            nextID = 0;
+          }
         }
       }else if(now.hour() != checkHour){
         if(now.minute() != checkMinute){
