@@ -49,7 +49,6 @@ RTC_DS1307 rtc;
 void reset();
 void checkTime();
 void getClock(int schedule);
-void setWateringTime(int schedule);
 void decodeClock(int schedule);
 void startWatering(int durasi);
 void addSchedule(int schedule);
@@ -167,13 +166,6 @@ void setDurasi(int schedule) {
   lcd.print("Set Durasi");
   input = "";
   stateDurasi = true;
-  getClock(schedule);
-}
-
-void setWateringTime(int schedule) {
-  lcd.clear();
-  lcd.print("Watering Time");
-  input = "";
   getClock(schedule);
 }
 
