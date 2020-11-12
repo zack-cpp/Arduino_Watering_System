@@ -32,7 +32,7 @@ int iJam, iMenit;
 unsigned int durasiInSecond = 0;
 unsigned int currentWatering = 0;
 unsigned int tmpSecond = 0;
-unsigned int nextID = 1;
+unsigned int scheduleIndex = 1;
 
 char KeysID[] = {'1',  '2', '3', 'A', '4', '5', '6', 'B', '7', '8', '9', 'C', '*', '0', '#', 'D'};
 char keys[ROWS][COLS] = {
@@ -85,15 +85,17 @@ void loop() {
   lcd.setCursor(0, 0);
   // show jadwal
   lcd.print("Jadwal: ");
-  if (EEPROM.read((nextID * 5) + 2) < 10) {
+  if (EEPROM.read((scheduleIndex * 5) + 2) < 10) {
     lcd.print("0");
   }
-  lcd.print(EEPROM.read((nextID * 5) + 2));
+//  lcd.print(tmp);
+  lcd.print(EEPROM.read((scheduleIndex * 5) + 2));
   lcd.print(":");
-  if (EEPROM.read((nextID * 5) + 3) < 10) {
+  if (EEPROM.read((scheduleIndex * 5) + 3) < 10) {
     lcd.print("0");
   }
-  lcd.print(EEPROM.read((nextID * 5) + 3));
+//  lcd.print(tmp1);
+  lcd.print(EEPROM.read((scheduleIndex * 5) + 3));
   //
   //show realtime clock
   lcd.setCursor(0, 1);
@@ -226,40 +228,85 @@ void decodeClock(int schedule) {
   }
   lcd.clear();
 }
-void checkTime() {
-  DateTime now = rtc.now();
-  int checkSchedule = EEPROM.read(AMOUNT_PATTERN);
-  if (checkSchedule != 0) {
-    for (int schedule = 0; schedule < checkSchedule; schedule++) {
-      unsigned int ANDstate = 0;
-      int checkHour = EEPROM.read(((schedule + 1) * 5) + 2);
-      int checkMinute = EEPROM.read(((schedule + 1) * 5) + 3);
-      int checkDurasiMinute = EEPROM.read((schedule + 1) * 5);
-      int checkDurasiSecond = EEPROM.read(((schedule + 1) * 5) + 1);
-      durasiInSecond = (checkDurasiMinute * 60) + checkDurasiSecond;
-      if (now.hour() == checkHour && now.minute() == checkMinute || buttonPressed == true) {
-        if (state[schedule] == false) { // in case duration is lower then 60 seconds, prevent watering more than once in a minute.
-          state[schedule] = true;
-          startWatering(durasiInSecond);
-          nextID++;
-          if (nextID == checkSchedule + 1) {
-            nextID = 1;
-          }
-        }
-      }
-      //state reset if all watering is done in a day
-      for (int i = 0; i < checkSchedule; i++) {
-        if (state[i] == true) {
-          ANDstate++;
-        }
-      }
-      if (ANDstate == checkSchedule) {
-        for (int i = 0; i < checkSchedule; i++) {
-          state[i] = false;
-        }
+
+void sort(int a[], int d[], int size){
+  for(int i=0; i<(size-1); i++) {
+    for(int o=0; o<(size-(i+1)); o++) {
+      if(a[o] > a[o+1]) {
+        int t = a[o];
+        int x = d[o];
+        a[o] = a[o+1];
+        d[o] = d[o+1];
+        a[o+1] = t;
+        d[o+1] = x;
       }
     }
   }
+}
+
+void checkTime() {
+  DateTime now = rtc.now();
+  int checkSchedule = EEPROM.read(AMOUNT_PATTERN);
+  int amountHour[checkSchedule];
+  int amountMinute[checkSchedule];
+  int checkDurasiMinute[checkSchedule];
+  int checkDurasiSecond[checkSchedule];
+  unsigned int ANDstate = 0;
+  scheduleIndex = 1;
+
+  for (int i = 0; i < checkSchedule; i++){
+    amountHour[i] = EEPROM.read(((i + 1) * 5) + 2);
+    amountMinute[i] = EEPROM.read(((i + 1) * 5) + 3);
+    checkDurasiMinute[i] = EEPROM.read((i + 1) * 5);
+    checkDurasiSecond[i] = EEPROM.read(((i + 1) * 5) + 1);
+  }
+  sort(amountHour, amountMinute, sizeof(amountHour) / sizeof(int));
+  // getting index
+  for(int i = 0; i < checkSchedule; i++){
+    if(now.hour() < amountHour[i]){
+      scheduleIndex = i + 1;
+    }else if(now.hour() == amountHour[i]){
+      if(now.minute() < amountMinute[i]){
+        scheduleIndex = i + 1;
+      }
+    }
+  }
+  // getting duration
+  durasiInSecond = (checkDurasiMinute[scheduleIndex] * 60) + checkDurasiSecond[scheduleIndex];
+  //check time
+  if(now.hour() == amountHour[scheduleIndex] && now.minute() == amountMinute[scheduleIndex] || buttonPressed == true){
+    if(state[scheduleIndex] == false) { // in case duration is lower then 60 seconds, prevent watering more than once in a minute.
+      state[scheduleIndex] = true;
+      startWatering(durasiInSecond);
+    }
+  }
+  for (int i = 0; i < checkSchedule; i++) {
+    if (state[i] == true) {
+      ANDstate++;
+    }
+  }
+  if (ANDstate == checkSchedule) {
+    for (int i = 0; i < checkSchedule; i++) {
+      state[i] = false;
+    }
+  }
+  //debug
+  Serial.print("\nHour\t: ");
+  for(int i = 0; i < checkSchedule; i++){
+    Serial.print(amountHour[i]);
+    if(i != checkSchedule - 1){
+      Serial.print(", ");
+    }
+  }
+  Serial.print("\nMinute\t: ");
+  for(int i = 0; i < checkSchedule; i++){
+    Serial.print(amountMinute[i]);
+    if(i != checkSchedule - 1){
+      Serial.print(", ");
+    }
+  }
+  Serial.print("\nSchedule Index: ");
+  Serial.println(scheduleIndex);
 }
 
 void startWatering(int durasi) {
