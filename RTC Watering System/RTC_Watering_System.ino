@@ -85,40 +85,32 @@ void loop() {
   EEPROM.write(1, now.minute());
   EEPROM.write(2, now.second());
   lcd.setCursor(0, 0);
-  // show jadwal
+  // show schedule
   lcd.print("Jadwal: ");
-//  if(EEPROM.read(((scheduleIndex + 1) * 5) + 2) < 10){
   if(hh < 10){
     lcd.print("0");
   }
-//  lcd.print(EEPROM.read(((scheduleIndex + 1) * 5) + 2));
   lcd.print(hh);
   lcd.print(":");
-//  if(EEPROM.read(((scheduleIndex + 1) * 5) + 3) < 10){
   if(mm < 10){
     lcd.print("0");
   }
   lcd.print(mm);
-//  lcd.print(EEPROM.read(((scheduleIndex + 1) * 5) + 3));
-  //
   //show realtime clock
   lcd.setCursor(0, 1);
   if(now.hour() < 10) {
     lcd.print("0");
   }
-//  lcd.print(EEPROM.read(0));
   lcd.print(now.hour());
   lcd.print(":");
   if (now.minute() < 10) {
     lcd.print("0");
   }
-//  lcd.print(EEPROM.read(1));
   lcd.print(now.minute());
   lcd.print(":");
   if (now.second() < 10) {
     lcd.print("0");
   }
-//  lcd.print(EEPROM.read(2));
   lcd.print(now.second());
   //
   char key = keypad.getKey();
