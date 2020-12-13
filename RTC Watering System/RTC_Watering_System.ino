@@ -10,7 +10,7 @@
 #include <LiquidCrystal_I2C.h>
 #include "RTClib.h"
 
-#define pump 10
+#define pump 11
 #define AMOUNT_PATTERN 3
 #define SCHEDULE AMOUNT_PATTERN + 1
 
@@ -28,6 +28,7 @@ String input = "";
 String jam, menit;
 
 int iJam, iMenit;
+int i = 0;
 
 unsigned int durasiInSecond = 0;
 unsigned int currentWatering = 0;
@@ -47,7 +48,7 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 RTC_DS1307 rtc;
 
 void reset();
-void checkTime();
+int checkTime(bool req);
 void getClock(int schedule);
 void decodeClock(int schedule);
 void startWatering(int durasi);
@@ -78,41 +79,47 @@ void setup() {
 
 void loop() {
   DateTime now = rtc.now();
-  checkTime();
+  int hh = checkTime(true);
+  int mm = checkTime(false);
   EEPROM.write(0, now.hour());
   EEPROM.write(1, now.minute());
   EEPROM.write(2, now.second());
   lcd.setCursor(0, 0);
   // show jadwal
   lcd.print("Jadwal: ");
-  if (EEPROM.read((scheduleIndex * 5) + 2) < 10) {
+//  if(EEPROM.read(((scheduleIndex + 1) * 5) + 2) < 10){
+  if(hh < 10){
     lcd.print("0");
   }
-//  lcd.print(tmp);
-  lcd.print(EEPROM.read((scheduleIndex * 5) + 2));
+//  lcd.print(EEPROM.read(((scheduleIndex + 1) * 5) + 2));
+  lcd.print(hh);
   lcd.print(":");
-  if (EEPROM.read((scheduleIndex * 5) + 3) < 10) {
+//  if(EEPROM.read(((scheduleIndex + 1) * 5) + 3) < 10){
+  if(mm < 10){
     lcd.print("0");
   }
-//  lcd.print(tmp1);
-  lcd.print(EEPROM.read((scheduleIndex * 5) + 3));
+  lcd.print(mm);
+//  lcd.print(EEPROM.read(((scheduleIndex + 1) * 5) + 3));
   //
   //show realtime clock
   lcd.setCursor(0, 1);
-  if (EEPROM.read(0) < 10) {
+  if(now.hour() < 10) {
     lcd.print("0");
   }
-  lcd.print(EEPROM.read(0));
+//  lcd.print(EEPROM.read(0));
+  lcd.print(now.hour());
   lcd.print(":");
-  if (EEPROM.read(1) < 10) {
+  if (now.minute() < 10) {
     lcd.print("0");
   }
-  lcd.print(EEPROM.read(1));
+//  lcd.print(EEPROM.read(1));
+  lcd.print(now.minute());
   lcd.print(":");
-  if (EEPROM.read(2) < 10) {
+  if (now.second() < 10) {
     lcd.print("0");
   }
-  lcd.print(EEPROM.read(2));
+//  lcd.print(EEPROM.read(2));
+  lcd.print(now.second());
   //
   char key = keypad.getKey();
   if (key) {
@@ -244,7 +251,7 @@ void sort(int a[], int d[], int size){
   }
 }
 
-void checkTime() {
+int checkTime(bool req){
   DateTime now = rtc.now();
   int checkSchedule = EEPROM.read(AMOUNT_PATTERN);
   int amountHour[checkSchedule];
@@ -252,7 +259,7 @@ void checkTime() {
   int checkDurasiMinute[checkSchedule];
   int checkDurasiSecond[checkSchedule];
   unsigned int ANDstate = 0;
-  scheduleIndex = 1;
+  scheduleIndex = 0;
 
   for (int i = 0; i < checkSchedule; i++){
     amountHour[i] = EEPROM.read(((i + 1) * 5) + 2);
@@ -261,14 +268,16 @@ void checkTime() {
     checkDurasiSecond[i] = EEPROM.read(((i + 1) * 5) + 1);
   }
   sort(amountHour, amountMinute, sizeof(amountHour) / sizeof(int));
-  // getting index
-  for(int i = 0; i < checkSchedule; i++){
-    if(now.hour() < amountHour[i]){
-      scheduleIndex = i + 1;
-    }else if(now.hour() == amountHour[i]){
-      if(now.minute() < amountMinute[i]){
-        scheduleIndex = i + 1;
-      }
+  if(now.hour() < amountHour[i]){
+    scheduleIndex = i;
+  }else if(now.hour() == amountHour[i]){
+    if(now.minute() <= amountMinute[i]){
+      scheduleIndex = i;
+    }
+  }else if(now.hour() > amountHour[i]){
+    i++;
+    if(i == checkSchedule){
+      i = 0;
     }
   }
   // getting duration
@@ -280,15 +289,21 @@ void checkTime() {
       startWatering(durasiInSecond);
     }
   }
-  for (int i = 0; i < checkSchedule; i++) {
-    if (state[i] == true) {
+  for(int i = 0; i < checkSchedule; i++){
+    if(state[i] == true) {
       ANDstate++;
     }
   }
-  if (ANDstate == checkSchedule) {
-    for (int i = 0; i < checkSchedule; i++) {
-      state[i] = false;
+  //resest method
+  if(ANDstate == checkSchedule){
+    if(now.minute() != amountMinute[scheduleIndex]){
+      for(int i = 0; i < checkSchedule; i++) {
+        state[i] = false;
+      }
     }
+  }
+  if(i == checkSchedule){ // reset index
+    i = 0;
   }
   //debug
   Serial.print("\nHour\t: ");
@@ -305,8 +320,21 @@ void checkTime() {
       Serial.print(", ");
     }
   }
-  Serial.print("\nSchedule Index: ");
-  Serial.println(scheduleIndex);
+  Serial.print("\nState\t: ");
+  for(int i = 0; i < checkSchedule; i++){
+    Serial.print(state[i]);
+    if(i != checkSchedule - 1){
+      Serial.print(", ");
+    }
+  }
+  Serial.print("\ni: ");
+  Serial.println(i);
+
+  if(req == true){
+    return amountHour[i];
+  }else{
+    return amountMinute[i];
+  }
 }
 
 void startWatering(int durasi) {
