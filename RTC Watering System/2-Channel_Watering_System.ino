@@ -413,64 +413,6 @@ int checkTime(bool req){
       j = 0;
     }
   }
-  //debug
-  /*
-  Serial.print("\nHour\t\t: ");
-  for(int i = 0; i < checkSchedule; i++){
-    Serial.print(amountHour[i]);
-    if(i != checkSchedule - 1){
-      Serial.print(", ");
-    }
-  }
-  Serial.print("\nMinute\t\t: ");
-  for(int i = 0; i < checkSchedule; i++){
-    Serial.print(amountMinute[i]);
-    if(i != checkSchedule - 1){
-      Serial.print(", ");
-    }
-  }Serial.print("\nChannel\t\t: ");
-  for(int i = 0; i < checkSchedule; i++){
-    Serial.print(totalChannel[i]);
-    if(i != checkSchedule - 1){
-      Serial.print(", ");
-    }
-  }
-  Serial.print("\nChannel 1\t: ");
-  for(int i = 0; i < checkSchedule; i++){
-    Serial.print(channel1[i]);
-    if(i != checkSchedule - 1){
-      Serial.print(", ");
-    }
-  }
-  Serial.print("\nChannel 2\t: ");
-  for(int i = 0; i < checkSchedule; i++){
-    Serial.print(channel2[i]);
-    if(i != checkSchedule - 1){
-      Serial.print(", ");
-    }
-  }
-  Serial.print("\nDurasi Ch\t: ");
-  for(int i = 0; i < 2; i++){
-    Serial.print(durasiInSecond[i]);
-    if(i != 2 - 1){
-      Serial.print(", ");
-    }
-  }
-  Serial.print("\nState\t\t: ");
-  for(int i = 0; i < checkSchedule; i++){
-    Serial.print(state[i]);
-    if(i != checkSchedule - 1){
-      Serial.print(", ");
-    }
-  }
-  Serial.println("");
-//  Serial.print("\nCheck Schedule: ");
-//  Serial.println(checkSchedule);
-//  Serial.print("i: ");
-//  Serial.println(i);
-//  Serial.print("Schedule Index: ");
-//  Serial.println(scheduleIndex);
-  */
   if(req == true){
     if(ANDstate == checkSchedule){
       return amountHour[0];
